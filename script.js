@@ -155,17 +155,22 @@ possibleStems = possibleStems.filter(stem =>
 );
 console.log(possibleStems);
 
-//////STEP 4: Most FGs connected ////////////////
-let mostFGS = 0;
-possibleStems.forEach(stem => {
-	let numerOfFGs = functionalGroups.filter(fg =>stem.includes(fg[2])).length;
-	mostFGS = Math.max(mostFGS, numerOfFGs);
-});
-possibleStems = possibleStems.filter(stem =>
-	functionalGroups.filter(fg =>
-		stem.includes(fg[2]).length == mostFGS)
-);
+//////STEP 4: All FGs connected ////////////////
+// let mostFGS = 0;
+// possibleStems.forEach(stem => {
+// 	let numerOfFGs = functionalGroups.filter(fg =>stem.includes(fg[2])).length;
+// 	mostFGS = Math.max(mostFGS, numerOfFGs);
+// });
+// possibleStems = possibleStems.filter(stem =>
+// 	functionalGroups.filter(fg =>
+// 		stem.includes(fg[2]).length == mostFGS)
+// );
 
+possibleStems = possibleStems.filter(stem =>
+	functionalGroups.every(fg =>
+		stem.includes(fg[2])
+	)
+);
 //////STEP 5: Longest stem //////////////////////
 let longestStemLength = Math.max(...possibleStems.map(array=>array.length));
 possibleStems = possibleStems.filter(stem => stem.length == longestStemLength);
@@ -193,27 +198,74 @@ possibleStems = possibleStems.filter(stem => {
 	return numberOfBranches == mostBranches;
 });
 
+
+
 //////STEP 7: Most imporant FG is lowest number /
+if(possibleStems.length > 1){
+	let highestPrioFG;
+	for([fgtype, prio] of Object.entries(FGPRIORITY)){
+		if(functionalGroups.some(fg => fg[1] == fgtype)){
+			highestPrioFG = fgtype;
+			break;
+		}
+	}
+	let highestPrioFGCs = functionalGroups.filter(fg => fg[1] == highestPrioFG).map(fg => fg[2]);
+	let lowestPositionsHighestPrioFG = [Infinity];
+	possibleStems.forEach(stem => {
+		let positions = [];
+		for(element of highestPrioFGCs){
+			positions.push(stem.indexOf(element));
+		};
+		positions = positions
+			.filter(position => position != -1)
+			.sort((a,b)=>a-b);
+
+		for(const [index, position] of positions){
+			if(position < lowestPositionsHighestPrioFG[index]){
+				lowestPositionsHighestPrioFG = positions;
+				break;
+			}
+		}
+	});
+	possibleStems = possibleStems.filter(stem => {
+		let positions = [];
+		for(element of highestPrioFGCs){
+			positions.push(stem.indexOf(element));
+		};
+		positions = positions.filter(position => position != -1).sort((a,b)=>a-b);
+		return (arraysEqual(positions, lowestPositionsHighestPrioFG));
+	});
+}
+//////STEP 8: Most important bond is lowest number
+if(possibleStems.length > 1){
+	let mvb; //most valuable bond
+	
+}
+
+
+let possibleNamesRaw = [];
+	possibleNamesRaw.push(
+		{
+			stem: {
+				length: stem.length,
+				doubleBonds: [[],[]]
+			},
+			suffix: {
+				type: 'name',
+				positions: []
+			},
+			prefixes: [
+				{
+					type: 'name',
+					positions: [],
+					referenceLetter: 'a'
+				}
+			]
+		}
+	);
 
 
 
-
-// let highestPrioFG;
-// for(const stem of possibleStems){
-// 	for([fgtype, prio] of Object.entries(FGPRIORITY)){
-// 		if(functionalGroups.some(fg => fg[1] == fgtype) && prio > FGPRIORITY[highestPrioFG]){
-// 			highestPrioFG = fgtype;
-// 			break;
-// 		}
-// 	}
-// }
-// for(const stem of possibleStems){
-// 	let fgPositions = functionalGroups
-// 		.filter(fg => fg[1] == highestPrioFG)
-// 		.map(fg => stem.indexOf(fg[2]));
-// 	fgPositions.sort((a,b)=>a-b);
-// }
-
-
+console.log(functionalGroups);
 console.log(possibleStems);
 console.log('started!');
