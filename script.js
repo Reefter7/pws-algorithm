@@ -53,6 +53,23 @@ class ChemicalBond{
         this.type = bondtype;
     }
 
+	static bondsBetween = (...elements) => {
+		if(elements.length < 2) return false;
+		if(elements.some(element => !(element instanceof ChemicalElement))) return false;
+		let element_combinations = elements.flatMap(
+			(el1, idx) => elements.slice(idx+1).map(el2 => [el1, el2])
+		);
+		let returnArray = [];
+		element_combinations.forEach(combination => {
+			returnArray.push(
+				...bonds.filter(bond=>
+					(bond.el1==combination[0] && bond.el2==combination[1]) ||
+					(bond.el2==combination[0] && bond.el1==combination[1])
+				)
+			)
+		});
+		return [...new Set(returnArray)];
+	}
 }
 ///////////////////////////////////////////////////////////////////
 console.log('starting...');
@@ -61,7 +78,7 @@ console.log('starting...');
 let bondData = []; //[elmt1, elmt2, type]
 let elementData = []; //[pos, typeid]
 ///
-exampleCondensationProducts(0);
+example2(0);
 //////
 
 let elements = [];
@@ -82,7 +99,7 @@ bondData.forEach(bond => {
 let c_elements = ChemicalElement.getAllCs();
 let possibleStems;
 /////////////////////////////////////////////////
-//All steps marked with *: step not normal, but used to keep in the scope of the algorithm
+//Some steps are simplified to stay within the scope of the algorithm: only structural formulas found in klas 4.
 //////STEP 1: Locate all functional groups //////
 functionalGroups = findFuncGroups(c_elements); //search.js
 
@@ -143,9 +160,9 @@ ChemicalElement.resetDFS();
 
 possibleStems = [...rings, ...stems];
 
-console.log(possibleStems);
+console.log(2,possibleStems);
 
-//////STEP 3: All C=C and C≡C in stem* //////////
+//////STEP 3: All C=C and C≡C in stem //////////
 possibleStems = possibleStems.filter(stem => 
 	bonds.filter(bond => 
 			bond.type != 0 && bond.el1.type == 6 && bond.el2.type == 6
@@ -153,23 +170,20 @@ possibleStems = possibleStems.filter(stem =>
 			stem.includes(bond.el1) && stem.includes(bond.el2)
 		)
 );
-console.log(possibleStems);
 
-//////STEP 4: Most FGs connected ////////////////
-let mostFGS = 0;
-possibleStems.forEach(stem => {
-	let numerOfFGs = functionalGroups.filter(fg =>stem.includes(fg[2])).length;
-	mostFGS = Math.max(mostFGS, numerOfFGs);
-});
+console.log(3,possibleStems);
+//////STEP 4: All FGs connected ////////////////
 possibleStems = possibleStems.filter(stem =>
-	functionalGroups.filter(fg =>
-		stem.includes(fg[2]).length == mostFGS)
+	functionalGroups.every(fg =>
+		stem.includes(fg[2])
+	)
 );
-
+console.log(4,possibleStems);
 //////STEP 5: Longest stem //////////////////////
 let longestStemLength = Math.max(...possibleStems.map(array=>array.length));
 possibleStems = possibleStems.filter(stem => stem.length == longestStemLength);
 
+console.log(5,possibleStems);
 //////STEP 6: Most Branches /////////////////////
 let mostBranches = 0; //branch detection: detect C connected to stem that is not part of stem
 possibleStems.forEach(stem => {
@@ -193,27 +207,78 @@ possibleStems = possibleStems.filter(stem => {
 	return numberOfBranches == mostBranches;
 });
 
+
+console.log(6,possibleStems);
 //////STEP 7: Most imporant FG is lowest number /
+if(possibleStems.length > 1 && functionalGroups.length > 0){
+	let highestPrioFG;
+	for([fgtype, prio] of Object.entries(FGPRIORITY)){
+		if(functionalGroups.some(fg => fg[1] == fgtype)){
+			highestPrioFG = fgtype;
+			break;
+		}
+	}
+	let highestPrioFGCs = functionalGroups.filter(fg => fg[1] == highestPrioFG).map(fg => fg[2]);
+	let lowestPositionsHighestPrioFG = [Infinity];
+	possibleStems.forEach(stem => {
+		let positions = [];
+		for(element of highestPrioFGCs){
+			positions.push(stem.indexOf(element));
+		};
+		positions = positions
+			.filter(position => position != -1)
+			.sort((a,b)=>a-b);
+
+		for(const [index, position] of positions.entries()){
+			if(position < lowestPositionsHighestPrioFG[index]){
+				lowestPositionsHighestPrioFG = positions;
+				break;
+			}
+		}
+	});
+	possibleStems = possibleStems.filter(stem => {
+		let positions = [];
+		for(element of highestPrioFGCs){
+			positions.push(stem.indexOf(element));
+		};
+		positions = positions.filter(position => position != -1).sort((a,b)=>a-b);
+		return (arraysEqual(positions, lowestPositionsHighestPrioFG));
+	});
+}
+
+console.log(7,possibleStems);
+//////STEP 8: Most important bond is lowest number
+if(possibleStems.length > 1){
+	let presentBondTypes = [...new Set(ChemicalBond.bondsBetween(...possibleStems.flatMap(v=>v)).map(v=>v.type))];
+	console.log(presentBondTypes);
+
+	let mvb
+}
+
+/*
+let possibleNamesRaw = [];
+	possibleNamesRaw.push(
+		{
+			stem: {
+				length: stem.length,
+				doubleBonds: [[],[]]
+			},
+			suffix: {
+				type: 'name',
+				positions: []
+			},
+			prefixes: [
+				{
+					type: 'name',
+					positions: [],
+					referenceLetter: 'a'
+				}
+			]
+		}
+	);
+*/
 
 
-
-
-// let highestPrioFG;
-// for(const stem of possibleStems){
-// 	for([fgtype, prio] of Object.entries(FGPRIORITY)){
-// 		if(functionalGroups.some(fg => fg[1] == fgtype) && prio > FGPRIORITY[highestPrioFG]){
-// 			highestPrioFG = fgtype;
-// 			break;
-// 		}
-// 	}
-// }
-// for(const stem of possibleStems){
-// 	let fgPositions = functionalGroups
-// 		.filter(fg => fg[1] == highestPrioFG)
-// 		.map(fg => stem.indexOf(fg[2]));
-// 	fgPositions.sort((a,b)=>a-b);
-// }
-
-
+console.log(functionalGroups);
 console.log(possibleStems);
 console.log('started!');
