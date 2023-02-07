@@ -78,7 +78,7 @@ console.log('starting...');
 let bondData = []; //[elmt1, elmt2, type]
 let elementData = []; //[pos, typeid]
 ///
-example2(0);
+example4(0);
 //////
 
 let elements = [];
@@ -210,8 +210,8 @@ possibleStems = possibleStems.filter(stem => {
 
 console.log(6,possibleStems);
 //////STEP 7: Most imporant FG is lowest number /
+let highestPrioFG;
 if(possibleStems.length > 1 && functionalGroups.length > 0){
-	let highestPrioFG;
 	for([fgtype, prio] of Object.entries(FGPRIORITY)){
 		if(functionalGroups.some(fg => fg[1] == fgtype)){
 			highestPrioFG = fgtype;
@@ -242,43 +242,200 @@ if(possibleStems.length > 1 && functionalGroups.length > 0){
 			positions.push(stem.indexOf(element));
 		};
 		positions = positions.filter(position => position != -1).sort((a,b)=>a-b);
-		return (arraysEqual(positions, lowestPositionsHighestPrioFG));
+		return arraysEqual(positions, lowestPositionsHighestPrioFG);
 	});
 }
 
 console.log(7,possibleStems);
-//////STEP 8: Most important bond is lowest number
-if(possibleStems.length > 1){
-	let presentBondTypes = [...new Set(ChemicalBond.bondsBetween(...possibleStems.flatMap(v=>v)).map(v=>v.type))];
-	console.log(presentBondTypes);
 
-	let mvb
+//STEP 8+9: Bonds and Prefixes of stem.
+
+let possibleStemsObjects = [];
+possibleStems.forEach(stem => {
+	//double and triple bonds
+	let doubleBonds = [];
+	for(bond of ChemicalBond.bondsBetween(...stem).filter(bond => bond.type > 0)){
+		for(element of stem){
+			if(bond.el1 == element || bond.el2 == element) {
+				doubleBonds.push([stem.indexOf(element) + 1, bond]);
+				break;
+			}
+		}
+	}
+
+	let prefixes = [];
+	if(functionalGroups.length != 0) {
+		//detect prefixes
+		for([type,sortLetter] of Object.entries(FGPREFIXLETTERS)){
+			positions = [];
+			for(fg of functionalGroups.filter(fg => fg[1] != highestPrioFG)){
+				for(element of stem){
+					if(fg[2] == element && fg[1] == type){
+						positions.push(stem.indexOf(element) + 1);
+					}
+				}
+			}
+
+
+			if(positions.length != 0) prefixes.push(
+				{
+					type: type,
+					positions: positions,
+					sortLetter: sortLetter
+				}
+			)
+		}
+	}
+	
+	console.log(doubleBonds);
+	possibleStemsObjects.push(
+		{
+			elements: stem,
+			length: stem.length,
+			doubleBonds: doubleBonds,
+			prefixes: prefixes
+		}
+		);
+});
+
+//move lowest position number to front (index 0 in array)
+possibleStemsObjects = possibleStemsObjects.sort((a,b) => {
+	function firstDifference(idx){
+		if(a.doubleBonds[idx][0] == b.doubleBonds[idx][0]) return firstDifference(idx+1);
+		return a.doubleBonds[idx][0] - b.doubleBonds[idx][0];
+	}
+	return firstDifference(0);
+});
+let stem = possibleStemsObjects[0];
+
+//find position(s) of highest priority functional group
+let highestPrioFGPositions = [];
+for(fg of functionalGroups.filter(fg => fg[1] == highestPrioFG).map(fg => fg[2])){
+	highestPrioFGPositions.push(stem.elements.indexOf(fg) + 1);
+} 
+
+let rawName = {
+	stem: {
+		length: stem.length,
+		doubleBonds: stem.doubleBonds.map(db => [db[0], db[1].type])
+	},
+	suffix: {
+		type: highestPrioFG,
+		positions: highestPrioFGPositions
+	},
+	prefixes: stem.prefixes
+}
+console.log(rawName);
+
+//CONSTRUCT THE NAME
+function name_1() {
+	switch(rawName.stem.length){
+		case 1: return 'meth';
+		case 2: return 'eth';
+		case 3: return 'prop';
+		case 4: return 'but';
+		case 5: return 'pent';
+		case 6: return 'hex';
+		case 7: return 'hept';
+		case 8: return 'oct';
+		case 9: return 'non';
+		case 10: return 'dec';
+		default: return rawName.stem.length;
+	}
+}
+function name_2() {
+	if(rawName.stem.doubleBonds == []) return 'aan';
+	let returnStr = '';
+	if(rawName.stem.doubleBonds.some(b => b[1] == 1)){
+		returnStr += '-';
+		rawName.stem.doubleBonds.forEach(b => {if(b[1]==1) returnStr += b[0] + ','});
+		returnStr = returnStr.slice(0,-1);
+		returnStr += '-';
+		switch(rawName.stem.doubleBonds.filter(b => b[1] == 1).length){
+			case 1: 
+				break;
+			case 2: 
+				returnStr += 'di';
+				break;
+			case 3:
+				returnStr += 'tri';
+				break;
+			case 4:
+				returnStr += 'tetra';
+				break;
+			case 5:
+				returnStr += 'penta';
+				break;
+			default:
+				break;
+		}
+		returnStr += (rawName.stem.doubleBonds.some(b => b[1] == 2)) ? 'een' : 'en';
+	} 
+	if(rawName.stem.doubleBonds.some(b => b[1] == 2)){
+		returnStr += '-';
+		rawName.stem.doubleBonds.forEach(b => {if(b[1]==2) returnStr += b[0] + ','});
+		returnStr = returnStr.slice(0,-1);
+		returnStr += '-'
+		switch(rawName.stem.doubleBonds.filter(b => b[1] == 1).length){
+			case 1: 
+				break;
+			case 2: 
+				returnStr += 'di';
+				break;
+			case 3:
+				returnStr += 'tri';
+				break;
+			case 4:
+				returnStr += 'tetra';
+				break;
+			case 5:
+				returnStr += 'penta';
+				break;
+			default:
+				break;
+		}
+		returnStr += 'yn';
+	}
+	return returnStr;
+}
+function name_3() {
+	//suffix
+	let suffix = FGSUFFIXES[rawName.suffix.type];
+	let returnStr = '-';
+	for(pos of rawName.suffix.positions.sort((a,b)=>a-b)){
+		returnStr += pos + ',';
+	}
+	returnStr = returnStr.slice(0,-1);
+	returnStr += '-';
+	returnStr += NUMERICPREFIXES[rawName.suffix.positions.length]
+	returnStr += suffix;
+	return returnStr;
+}
+function name_4() {
+	//prefixes
+	let returnStr = '';
+	let prefixes = rawName.prefixes.sort((a,b) => a.sortLetter.charCodeAt(0) - b.sortLetter.charCodeAt(0));
+	for([idx, prefix] of Object.entries(prefixes)){
+		for(pos of prefix.positions.sort((a,b)=>a-b)){
+			returnStr += pos + ',';
+		}
+		returnStr = returnStr.slice(0,-1);
+		returnStr += '-';
+		returnStr += NUMERICPREFIXES[prefix.positions.length];
+		returnStr += FGPREFIXES[prefix.type];
+		if(idx != prefixes.length - 1) returnStr += '-';
+	}
+	return returnStr;
 }
 
-/*
-let possibleNamesRaw = [];
-	possibleNamesRaw.push(
-		{
-			stem: {
-				length: stem.length,
-				doubleBonds: [[],[]]
-			},
-			suffix: {
-				type: 'name',
-				positions: []
-			},
-			prefixes: [
-				{
-					type: 'name',
-					positions: [],
-					referenceLetter: 'a'
-				}
-			]
-		}
-	);
-*/
+function completeName() {
+	return name_4() + name_1() + name_2() + name_3();
+}
 
 
 console.log(functionalGroups);
 console.log(possibleStems);
+
+console.log('%c' + structuralFormula + '\n%c' + completeName(), "color: lightblue; font-size: 2em","color: red; font-weight: bold; font-size: 4em")
+
 console.log('started!');

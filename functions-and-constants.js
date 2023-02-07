@@ -20,10 +20,48 @@ const FGPRIORITY = {
 	alcohol: 10,
 	thiol: 11,
 	amine: 12,
-	ether: 13
 };
 
+const FGSUFFIXES = {
+	carbonzuur: 'zuur',
+	sulfonzuur: 'sulfonzuur',
+	zuuranhydride: 'zuuranhydride',
+	amide: 'amide',
+	nitril: 'nitril',
+	aldehyde: 'al',
+	keton: 'on',
+	alcohol: 'ol',
+	thiol: 'thiol',
+	amine: 'amine',
+}
 
+const FGPREFIXLETTERS = {
+	nitril: 'c',
+	aldehyde: 'o',
+	keton: 'o',
+	alcohol: 'h',
+	thiol: 's',
+	amine: 'a'
+}
+
+const FGPREFIXES = {
+	nitril: 'cyaan',
+	aldehyde: 'oxo',
+	keton: 'oxo',
+	alcohol: 'hydroxy',
+	thiol: 'sulfanyl',
+	amine: 'amino',
+}
+
+const NUMERICPREFIXES = {
+	1: '',
+	2: 'di',
+	3: 'tri',
+	4: 'tetra',
+	5: 'penta',
+	6: 'hexa',
+	7: 'hepta'
+}
 
 function random(...args){
 	switch (args.length) {
