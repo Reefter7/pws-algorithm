@@ -78,7 +78,7 @@ console.log('starting...');
 let bondData = []; //[elmt1, elmt2, type]
 let elementData = []; //[pos, typeid]
 ///
-example4(0);
+example5(0);
 //////
 
 let elements = [];
@@ -275,8 +275,6 @@ possibleStems.forEach(stem => {
 					}
 				}
 			}
-
-
 			if(positions.length != 0) prefixes.push(
 				{
 					type: type,
@@ -286,6 +284,24 @@ possibleStems.forEach(stem => {
 			)
 		}
 	}
+
+	let branches = [];
+	if(c_elements.length != stem.length){
+		//there are branches
+		for([idx,element] of Object.entries(stem)){
+			for(c_element of element.getConnectedCs()){
+				if(stem.includes(c_element)) continue;
+				let position = idx + 1;
+
+				let rings = [];
+				ChemicalElement.resetDFS();
+			//	findRingDFS(undefined, )
+				//find longest
+				//find branches, NOT previous, not part of ring!
+
+			}
+		}
+	}
 	
 	console.log(doubleBonds);
 	possibleStemsObjects.push(
@@ -293,7 +309,22 @@ possibleStems.forEach(stem => {
 			elements: stem,
 			length: stem.length,
 			doubleBonds: doubleBonds,
-			prefixes: prefixes
+			prefixes: prefixes,
+			// branches: [
+			// 	{
+			// 		position: -1,
+			// 		length: -1,
+			// 		elements: [],
+			// 		branches: [
+			// 			{
+			// 				position: -1,
+			// 				length: -1,
+			// 				elements: [],
+			// 				branches: []
+			// 			}
+			// 		]
+			// 	}
+			// ]
 		}
 		);
 });
