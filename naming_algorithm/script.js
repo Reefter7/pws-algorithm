@@ -1,4 +1,5 @@
-class ChemicalElement{
+function runAlgorithm(elementData, bondData, debugMolecularFormula) {	
+	class ChemicalElement{
     constructor(position, type){
         this.position = position;
         this.type = type;
@@ -73,13 +74,6 @@ class ChemicalBond{
 }
 ///////////////////////////////////////////////////////////////////
 console.log('starting...');
-
-///
-let bondData = []; //[elmt1, elmt2, type]
-let elementData = []; //[pos, typeid]
-///
-example5(0);
-//////
 
 let elements = [];
 let bonds = [];
@@ -408,7 +402,6 @@ for([a,b] of nameElements){
 	output.innerHTML += `<span class="output2" onclick="document.getElementById('output2').innerHTML = '${b}'">${a}</span>`;
 }
 
+ console.log('%c' + debugMolecularFormula + '\n%c' + completeName(), "color: lightblue; font-size: 2em","color: red; font-weight: bold; font-size: 4em")
 
- console.log('%c' + structuralFormula + '\n%c' + completeName(), "color: lightblue; font-size: 2em","color: red; font-weight: bold; font-size: 4em")
-
-console.log('started!');
+console.log('started!');}
