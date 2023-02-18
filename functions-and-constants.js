@@ -63,6 +63,21 @@ const NUMERICPREFIXES = {
 	7: 'hepta'
 }
 
+const STEMNAMES = {
+	1: 'meth',
+	2: 'eth',
+    3: 'prop',
+    4: 'but',
+	5: 'pent',
+    6: 'hex',
+	7: 'hept',
+	8: 'oct',
+    9: 'non',
+    10: 'dec',
+    11: 'undec',
+    12: 'duodec'
+}
+
 function random(...args){
 	switch (args.length) {
 		case 0:

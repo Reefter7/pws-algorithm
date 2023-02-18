@@ -119,7 +119,7 @@ function findRingDFS(parent, current) {
 		cycle.forEach(element => element.isPartOfRing = true);
 		rings.push(cycle);
 		return;
-	}
+	}	
 	current.parent = parent;
 	current.visited = 1;
 
@@ -145,7 +145,6 @@ function findStemDFS(parent, current){
 			stem.push(backtrack);
 		}
 		stems.push(stem);
-		return;
 	}
 	for(connC of current.getConnectedCs()){
 		if(connC === parent || connC.isPartOfRing) continue;
@@ -287,22 +286,37 @@ possibleStems.forEach(stem => {
 
 	let branches = [];
 	if(c_elements.length != stem.length){
-		//there are branches
-		for([idx,element] of Object.entries(stem)){
+		for([idx, element] of Object.entries(stem)){
 			for(c_element of element.getConnectedCs()){
 				if(stem.includes(c_element)) continue;
-				let position = idx + 1;
+				let position = Number.parseInt(idx) + 1;
+				console.log(8, position);
+				//c_element is the part of the branch connected to the stem, 'element' is the part of the stem connected to the branch
+				
+				let branchElements = [];
+				function findBranchDFS(parent, current){
+					current.parent = parent;
+					const connectedCs = current.getConnectedCs();
+					if (connectedCs.length == 1) {
+						let backtrack = parent;
+						branchElements.push(current);
+						while(backtrack != element && backtrack.parent != element) {
+							// backtrack = backtrack.parent;
+							branchElements.push(current);
+						}
+					}
 
-				let rings = [];
-				ChemicalElement.resetDFS();
-			//	findRingDFS(undefined, )
-				//find longest
-				//find branches, NOT previous, not part of ring!
-
+					for(connC of connectedCs){
+						if(connC === parent || connC.isPartOfRing) continue;
+						findStemDFS(current, connC);
+					}
+				}
+				findBranchDFS(element, c_element);
+				console.log(element, branchElements);
+				branches.push({positions: [element.position], length: branchElements.length, elements: branchElements});
 			}
 		}
-	}
-	
+	}	
 	console.log(doubleBonds);
 	possibleStemsObjects.push(
 		{
@@ -310,21 +324,7 @@ possibleStems.forEach(stem => {
 			length: stem.length,
 			doubleBonds: doubleBonds,
 			prefixes: prefixes,
-			// branches: [
-			// 	{
-			// 		position: -1,
-			// 		length: -1,
-			// 		elements: [],
-			// 		branches: [
-			// 			{
-			// 				position: -1,
-			// 				length: -1,
-			// 				elements: [],
-			// 				branches: []
-			// 			}
-			// 		]
-			// 	}
-			// ]
+			branches: branches
 		}
 		);
 });
@@ -354,25 +354,41 @@ let rawName = {
 		type: highestPrioFG,
 		positions: highestPrioFGPositions
 	},
-	prefixes: stem.prefixes
+	prefixes: stem.prefixes,
+	branches: stem.branches
 }
 console.log(rawName);
 
 //CONSTRUCT THE NAME
-function name_1() {
-	switch(rawName.stem.length){
-		case 1: return 'meth';
-		case 2: return 'eth';
-		case 3: return 'prop';
-		case 4: return 'but';
-		case 5: return 'pent';
-		case 6: return 'hex';
-		case 7: return 'hept';
-		case 8: return 'oct';
-		case 9: return 'non';
-		case 10: return 'dec';
-		default: return rawName.stem.length;
+let returnArray = [];
+function name_0() {
+	//branches
+	rawName.branches.forEach(branch => {
+		branch.name = NUMERICPREFIXES[branch.length] + STEMNAMES[branch.length] + 'yl';
+		branch.sortLetter = branch.name[0];
+	})
+
+	//prefixes
+	let returnStr = '';
+	let inclusivePrefixes = rawName.branches.concat(rawName.prefixes);
+	console.log(inclusivePrefixes);
+	inclusivePrefixes = inclusivePrefixes.sort((a,b) => a.sortLetter.charCodeAt(0) - b.sortLetter.charCodeAt(0));
+	for([idx, prefix] of Object.entries(inclusivePrefixes)){
+		for(pos of prefix.positions.sort((a,b)=>a-b)){
+			returnStr += pos + ',';
+		}
+		console.log('qa	', prefix);
+		returnStr = returnStr.slice(0,-1);
+		returnStr += '-';
+		returnStr += NUMERICPREFIXES[prefix.positions.length];
+		if(prefix.hasOwnProperty('type')) returnStr += FGPREFIXES[prefix.type];
+		if(prefix.hasOwnProperty('name')) returnStr += prefix.name;
+		if(idx != inclusivePrefixes.length - 1) returnStr += '-';
 	}
+	return returnStr;
+}
+function name_1() {
+	return STEMNAMES[rawName.stem.length];
 }
 function name_2() {
 	if(rawName.stem.doubleBonds == []) return 'aan';
@@ -442,25 +458,9 @@ function name_3() {
 	returnStr += suffix;
 	return returnStr;
 }
-function name_4() {
-	//prefixes
-	let returnStr = '';
-	let prefixes = rawName.prefixes.sort((a,b) => a.sortLetter.charCodeAt(0) - b.sortLetter.charCodeAt(0));
-	for([idx, prefix] of Object.entries(prefixes)){
-		for(pos of prefix.positions.sort((a,b)=>a-b)){
-			returnStr += pos + ',';
-		}
-		returnStr = returnStr.slice(0,-1);
-		returnStr += '-';
-		returnStr += NUMERICPREFIXES[prefix.positions.length];
-		returnStr += FGPREFIXES[prefix.type];
-		if(idx != prefixes.length - 1) returnStr += '-';
-	}
-	return returnStr;
-}
 
 function completeName() {
-	return name_4() + name_1() + name_2() + name_3();
+	return name_0() + name_1() + name_2() + name_3();
 }
 
 
@@ -470,3 +470,9 @@ console.log(possibleStems);
 console.log('%c' + structuralFormula + '\n%c' + completeName(), "color: lightblue; font-size: 2em","color: red; font-weight: bold; font-size: 4em")
 
 console.log('started!');
+
+
+
+// [
+// 	["name_element", connnected elements]
+// ]
