@@ -54,6 +54,7 @@ const FGPREFIXES = {
 }
 
 const NUMERICPREFIXES = {
+	0: '',
 	1: '',
 	2: 'di',
 	3: 'tri',

@@ -159,8 +159,6 @@ ChemicalElement.resetDFS();
 
 possibleStems = [...rings, ...stems];
 
-console.log(2,possibleStems);
-
 //////STEP 3: All C=C and C≡C in stem //////////
 possibleStems = possibleStems.filter(stem => 
 	bonds.filter(bond => 
@@ -169,20 +167,15 @@ possibleStems = possibleStems.filter(stem =>
 			stem.includes(bond.el1) && stem.includes(bond.el2)
 		)
 );
-
-console.log(3,possibleStems);
 //////STEP 4: All FGs connected ////////////////
 possibleStems = possibleStems.filter(stem =>
 	functionalGroups.every(fg =>
 		stem.includes(fg[2])
 	)
 );
-console.log(4,possibleStems);
 //////STEP 5: Longest stem //////////////////////
 let longestStemLength = Math.max(...possibleStems.map(array=>array.length));
 possibleStems = possibleStems.filter(stem => stem.length == longestStemLength);
-
-console.log(5,possibleStems);
 //////STEP 6: Most Branches /////////////////////
 let mostBranches = 0; //branch detection: detect C connected to stem that is not part of stem
 possibleStems.forEach(stem => {
@@ -205,9 +198,6 @@ possibleStems = possibleStems.filter(stem => {
 	}
 	return numberOfBranches == mostBranches;
 });
-
-
-console.log(6,possibleStems);
 //////STEP 7: Most imporant FG is lowest number /
 let highestPrioFG;
 if(possibleStems.length > 1 && functionalGroups.length > 0){
@@ -244,235 +234,181 @@ if(possibleStems.length > 1 && functionalGroups.length > 0){
 		return arraysEqual(positions, lowestPositionsHighestPrioFG);
 	});
 }
-
-console.log(7,possibleStems);
-
-//STEP 8+9: Bonds and Prefixes of stem.
-
-let possibleStemsObjects = [];
+//////
+let possibleStemsObjects =[];
 possibleStems.forEach(stem => {
-	//double and triple bonds
+	//double/triple bonds
 	let doubleBonds = [];
-	for(bond of ChemicalBond.bondsBetween(...stem).filter(bond => bond.type > 0)){
+	for(bond of ChemicalBond.bondsBetween(...stem).filter(bond => bond.type > 0)) {
 		for(element of stem){
-			if(bond.el1 == element || bond.el2 == element) {
-				doubleBonds.push([stem.indexOf(element) + 1, bond]);
+			if(bond.el1 == element || bond.el2 == element){
+				doubleBonds.push([stem.indexOf(element) +1, bond]);
 				break;
 			}
 		}
 	}
-
-	let prefixes = [];
-	if(functionalGroups.length != 0) {
-		//detect prefixes
+	//secondary functional groups
+	let secondaryFGs = [];
+	if(functionalGroups.length > 0) {
 		for([type,sortLetter] of Object.entries(FGPREFIXLETTERS)){
-			positions = [];
+			let positions = [];
+			let elements = [];
 			for(fg of functionalGroups.filter(fg => fg[1] != highestPrioFG)){
 				for(element of stem){
 					if(fg[2] == element && fg[1] == type){
 						positions.push(stem.indexOf(element) + 1);
+						elements.push(element, ...fg[0]);
 					}
 				}
 			}
-			if(positions.length != 0) prefixes.push(
-				{
+			if(positions.length > 0){
+				secondaryFGs.push({
 					type: type,
 					positions: positions,
-					sortLetter: sortLetter
-				}
-			)
+					sortLetter: sortLetter,
+					elements: elements
+				});
+			}
 		}
 	}
 
+	//branches
 	let branches = [];
-	if(c_elements.length != stem.length){
+	if(c_elements.length > stem.length) {
 		for([idx, element] of Object.entries(stem)){
 			for(c_element of element.getConnectedCs()){
 				if(stem.includes(c_element)) continue;
 				let position = Number.parseInt(idx) + 1;
-				console.log(8, position);
-				//c_element is the part of the branch connected to the stem, 'element' is the part of the stem connected to the branch
-				
 				let branchElements = [];
 				function findBranchDFS(parent, current){
 					current.parent = parent;
 					const connectedCs = current.getConnectedCs();
-					if (connectedCs.length == 1) {
+					if(connectedCs.length == 1) {
 						let backtrack = parent;
-						branchElements.push(current);
-						while(backtrack != element && backtrack.parent != element) {
-							// backtrack = backtrack.parent;
+						branchElements.push(current, backtrack);
+						while(backtrack != undefined && backtrack.parent != undefined) {
+							backtrack = backtrack.parent;
 							branchElements.push(current);
 						}
-					}
-
+						branchElements.pop();					}
 					for(connC of connectedCs){
 						if(connC === parent || connC.isPartOfRing) continue;
-						findStemDFS(current, connC);
+						findBranchDFS(current, connC);
 					}
 				}
 				findBranchDFS(element, c_element);
-				console.log(element, branchElements);
-				branches.push({positions: [element.position], length: branchElements.length, elements: branchElements});
+					branches.push({
+					positions: [position],
+					length: branchElements.length,
+					elements: branchElements
+				});
 			}
 		}
-	}	
-	console.log(doubleBonds);
-	possibleStemsObjects.push(
-		{
-			elements: stem,
-			length: stem.length,
-			doubleBonds: doubleBonds,
-			prefixes: prefixes,
-			branches: branches
-		}
-		);
-});
-
-//move lowest position number to front (index 0 in array)
-possibleStemsObjects = possibleStemsObjects.sort((a,b) => {
-	function firstDifference(idx){
-		if(a.doubleBonds[idx][0] == b.doubleBonds[idx][0]) return firstDifference(idx+1);
-		return a.doubleBonds[idx][0] - b.doubleBonds[idx][0];
 	}
-	return firstDifference(0);
+
+	//complete
+	possibleStemsObjects.push({
+		stem: stem,
+		length: stem.length,
+		doubleBonds: doubleBonds,
+		secondaryFGs: secondaryFGs,
+		branches: branches
+	});
+})
+
+//move lowest position number to the front (= index 0 of the array)
+possibleStemsObjects = possibleStemsObjects.sort((a,b) => {
+	function firstDifference(index){
+		if(a.doubleBonds[index][0] == b.doubleBonds[index][0]) return firstDifference(index+1);
+		return a.doubleBonds[index][0] - b.doubleBonds[index][0];
+	}
+	firstDifference(0);
 });
 let stem = possibleStemsObjects[0];
 
-//find position(s) of highest priority functional group
+//find position(s) of highest prio functional group
 let highestPrioFGPositions = [];
 for(fg of functionalGroups.filter(fg => fg[1] == highestPrioFG).map(fg => fg[2])){
-	highestPrioFGPositions.push(stem.elements.indexOf(fg) + 1);
-} 
-
-let rawName = {
-	stem: {
-		length: stem.length,
-		doubleBonds: stem.doubleBonds.map(db => [db[0], db[1].type])
-	},
-	suffix: {
-		type: highestPrioFG,
-		positions: highestPrioFGPositions
-	},
-	prefixes: stem.prefixes,
-	branches: stem.branches
+	highestPrioFGPositions.push(stem.stem.indexOf(fg) + 1);
 }
-console.log(rawName);
 
-//CONSTRUCT THE NAME
-let returnArray = [];
-function name_0() {
-	//branches
-	rawName.branches.forEach(branch => {
-		branch.name = NUMERICPREFIXES[branch.length] + STEMNAMES[branch.length] + 'yl';
-		branch.sortLetter = branch.name[0];
-	})
+let nameElements = [];
+//prefixes (branches + functional groups)
+stem.branches.forEach(branch => {
+	branch.name = STEMNAMES[branch.length] + 'yl';
+	branch.sortLetter = branch.name;
+});
+let prefixes = stem.branches.concat(stem.secondaryFGs);
+prefixes = prefixes.sort((a,b)=>a.sortLetter.charCodeAt(0) - b.sortLetter.charCodeAt(0));
+let positionsConstructor = [];
+for([idx, prefix] of Object.entries(prefixes)){
+	let elementConstructor = '';
+	for(pos of prefix.positions.sort((a,b)=>a-b)){
+		elementConstructor += pos + ',';
+	}
+	elementConstructor = elementConstructor.slice(0, -1);
+	elementConstructor += '-' + NUMERICPREFIXES[prefix.positions.length];
+	const isFGnotBranch = (prefix.hasOwnProperty('type'));
+	(isFGnotBranch)
+		? elementConstructor += FGPREFIXES[prefix.type]		
+		: elementConstructor += prefix.name;
+	nameElements.push([elementConstructor, prefix.elements]);
+	if(idx != prefixes.length - 1) nameElements.push(['-', []])
+}
 
-	//prefixes
+//stem
+nameElements.push([STEMNAMES[stem.length], stem.stem]);
+
+//double/triple bonds
+if(stem.doubleBonds.length == []){
+	nameElements.push(['aan', stem]);
+} else {
+	dbonds = stem.doubleBonds.filter(bond => bond[1].type == 1);
+	tbonds = stem.doubleBonds.filter(bond => bond[1].type == 2);
+	//C=C bond
+	let elementConstructor = '';
+	if(dbonds.length > 0) elementConstructor += '-';
+	dbonds.forEach(bond => elementConstructor += bond[0] + ',');
+	elementConstructor = elementConstructor.slice(0, -1);
+	elementConstructor += '-' + NUMERICPREFIXES[dbonds.length];
+	elementConstructor += (tbonds.length > 0) ? 'en' : 'een';
+	let positionsConstructor = [];
+	dbonds.forEach(bond => positionsConstructor.push(bond[1].el1, bond[1].el2));
+	nameElements.push([elementConstructor, positionsConstructor]);
+	//C≡C bond
+	elementConstructor = '';
+	if(tbonds.length > 0) elementConstructor += '-';
+	tbonds.forEach(bond => elementConstructor += bond[0] + ',');
+	elementConstructor = elementConstructor.slice(0, -1);
+	elementConstructor += '-' + NUMERICPREFIXES[tbonds.length] + 'yn';
+	positionsConstructor = [];
+	tbonds.forEach(bond => positionsConstructor.push(bond[1].el1, bond[1].el2));
+	nameElements.push([elementConstructor, positionsConstructor]);
+}
+
+//suffix
+let suffix = FGSUFFIXES[highestPrioFG];
+let elementConstructor = '';
+if(highestPrioFGPositions.length > 0) elementConstructor += '-';
+for(pos of highestPrioFGPositions.sort((a,b)=>a-b)) elementConstructor += pos + ',';
+
+elementConstructor = elementConstructor.slice(0, -1) + '-' + NUMERICPREFIXES[highestPrioFGPositions.length] + suffix;
+positionsConstructor = functionalGroups.filter(fg => fg[1] == highestPrioFG).flatMap(fg => fg[0]);
+nameElements.push([elementConstructor, positionsConstructor]);
+nameElements.forEach(a => a[1] = a[1].map(b => b.position));
+
+function completeName(){
 	let returnStr = '';
-	let inclusivePrefixes = rawName.branches.concat(rawName.prefixes);
-	console.log(inclusivePrefixes);
-	inclusivePrefixes = inclusivePrefixes.sort((a,b) => a.sortLetter.charCodeAt(0) - b.sortLetter.charCodeAt(0));
-	for([idx, prefix] of Object.entries(inclusivePrefixes)){
-		for(pos of prefix.positions.sort((a,b)=>a-b)){
-			returnStr += pos + ',';
-		}
-		console.log('qa	', prefix);
-		returnStr = returnStr.slice(0,-1);
-		returnStr += '-';
-		returnStr += NUMERICPREFIXES[prefix.positions.length];
-		if(prefix.hasOwnProperty('type')) returnStr += FGPREFIXES[prefix.type];
-		if(prefix.hasOwnProperty('name')) returnStr += prefix.name;
-		if(idx != inclusivePrefixes.length - 1) returnStr += '-';
-	}
-	return returnStr;
-}
-function name_1() {
-	return STEMNAMES[rawName.stem.length];
-}
-function name_2() {
-	if(rawName.stem.doubleBonds == []) return 'aan';
-	let returnStr = '';
-	if(rawName.stem.doubleBonds.some(b => b[1] == 1)){
-		returnStr += '-';
-		rawName.stem.doubleBonds.forEach(b => {if(b[1]==1) returnStr += b[0] + ','});
-		returnStr = returnStr.slice(0,-1);
-		returnStr += '-';
-		switch(rawName.stem.doubleBonds.filter(b => b[1] == 1).length){
-			case 1: 
-				break;
-			case 2: 
-				returnStr += 'di';
-				break;
-			case 3:
-				returnStr += 'tri';
-				break;
-			case 4:
-				returnStr += 'tetra';
-				break;
-			case 5:
-				returnStr += 'penta';
-				break;
-			default:
-				break;
-		}
-		returnStr += (rawName.stem.doubleBonds.some(b => b[1] == 2)) ? 'een' : 'en';
-	} 
-	if(rawName.stem.doubleBonds.some(b => b[1] == 2)){
-		returnStr += '-';
-		rawName.stem.doubleBonds.forEach(b => {if(b[1]==2) returnStr += b[0] + ','});
-		returnStr = returnStr.slice(0,-1);
-		returnStr += '-'
-		switch(rawName.stem.doubleBonds.filter(b => b[1] == 1).length){
-			case 1: 
-				break;
-			case 2: 
-				returnStr += 'di';
-				break;
-			case 3:
-				returnStr += 'tri';
-				break;
-			case 4:
-				returnStr += 'tetra';
-				break;
-			case 5:
-				returnStr += 'penta';
-				break;
-			default:
-				break;
-		}
-		returnStr += 'yn';
-	}
-	return returnStr;
-}
-function name_3() {
-	//suffix
-	let suffix = FGSUFFIXES[rawName.suffix.type];
-	let returnStr = '-';
-	for(pos of rawName.suffix.positions.sort((a,b)=>a-b)){
-		returnStr += pos + ',';
-	}
-	returnStr = returnStr.slice(0,-1);
-	returnStr += '-';
-	returnStr += NUMERICPREFIXES[rawName.suffix.positions.length]
-	returnStr += suffix;
+	nameElements.forEach(nameElement => returnStr += nameElement[0]);
 	return returnStr;
 }
 
-function completeName() {
-	return name_0() + name_1() + name_2() + name_3();
+let output = document.getElementById('output');
+for([a,b] of nameElements){
+	output.innerHTML += `<span class="output2" onclick="document.getElementById('output2').innerHTML = '${b}'">${a}</span>`;
 }
 
 
-console.log(functionalGroups);
-console.log(possibleStems);
-
-console.log('%c' + structuralFormula + '\n%c' + completeName(), "color: lightblue; font-size: 2em","color: red; font-weight: bold; font-size: 4em")
+ console.log('%c' + structuralFormula + '\n%c' + completeName(), "color: lightblue; font-size: 2em","color: red; font-weight: bold; font-size: 4em")
 
 console.log('started!');
-
-
-
-// [
-// 	["name_element", connnected elements]
-// ]
