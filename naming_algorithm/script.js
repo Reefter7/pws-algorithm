@@ -155,7 +155,15 @@ ChemicalElement.resetDFS();
 
 possibleStems = [...rings, ...stems];
 
-	console.log('step 2', rings, stems)
+//methaan
+for(element of elements){
+	if(element.getConnectedCs.length == 0 && element.type == 6){
+		possibleStems.push([element]);
+	}
+}
+
+
+	console.log('step 2', possibleStems, rings, stems)
 //////STEP 3: All C=C and C≡C in stem //////////
 possibleStems = possibleStems.filter(stem => 
 	bonds.filter(bond => 
@@ -246,11 +254,13 @@ let possibleStemsObjects =[];
 possibleStems.forEach(stem => {
 	//double/triple bonds
 	let doubleBonds = [];
-	for(bond of ChemicalBond.bondsBetween(...stem).filter(bond => bond.type > 0)) {
-		for(element of stem){
-			if(bond.el1 == element || bond.el2 == element){
-				doubleBonds.push([stem.indexOf(element) +1, bond]);
-				break;
+	if(stem.length > 1){
+		for(bond of ChemicalBond.bondsBetween(...stem).filter(bond => bond.type > 0)) {
+			for(element of stem){
+				if(bond.el1 == element || bond.el2 == element){
+					doubleBonds.push([stem.indexOf(element) +1, bond]);
+					break;
+				}
 			}
 		}
 	}
