@@ -1,5 +1,6 @@
-function runAlgorithm(elementData, bondData, debugMolecularFormula) {	
-	class ChemicalElement{
+function runAlgorithm(elementData, bondData, debugMolecularFormula) {
+	
+class ChemicalElement{
     constructor(position, type){
         this.position = position;
         this.type = type;
@@ -97,6 +98,7 @@ let possibleStems;
 //////STEP 1: Locate all functional groups //////
 functionalGroups = findFuncGroups(c_elements); //search.js
 
+	console.log('step 1', functionalGroups);
 //////STEP 2: Find all possible stems ///////////
 //a: rings
 let rings = [];
@@ -153,6 +155,7 @@ ChemicalElement.resetDFS();
 
 possibleStems = [...rings, ...stems];
 
+	console.log('step 2', rings, stems)
 //////STEP 3: All C=C and C≡C in stem //////////
 possibleStems = possibleStems.filter(stem => 
 	bonds.filter(bond => 
@@ -161,15 +164,21 @@ possibleStems = possibleStems.filter(stem =>
 			stem.includes(bond.el1) && stem.includes(bond.el2)
 		)
 );
-//////STEP 4: All FGs connected ////////////////
+
+	console.log('step 3', possibleStems);
+	//////STEP 4: All FGs connected ////////////////
 possibleStems = possibleStems.filter(stem =>
-	functionalGroups.every(fg =>
-		stem.includes(fg[2])
-	)
+		functionalGroups.every(fg =>
+			stem.includes(fg[2])
+			)
 );
+
+	console.log('step 4', possibleStems);
 //////STEP 5: Longest stem //////////////////////
 let longestStemLength = Math.max(...possibleStems.map(array=>array.length));
 possibleStems = possibleStems.filter(stem => stem.length == longestStemLength);
+
+    console.log('step 5', longestStemLength, possibleStems);
 //////STEP 6: Most Branches /////////////////////
 let mostBranches = 0; //branch detection: detect C connected to stem that is not part of stem
 possibleStems.forEach(stem => {
@@ -192,6 +201,8 @@ possibleStems = possibleStems.filter(stem => {
 	}
 	return numberOfBranches == mostBranches;
 });
+
+	console.log('step 6', mostBranches, possibleStems);
 //////STEP 7: Most imporant FG is lowest number /
 let highestPrioFG;
 if(possibleStems.length > 1 && functionalGroups.length > 0){
@@ -228,6 +239,8 @@ if(possibleStems.length > 1 && functionalGroups.length > 0){
 		return arraysEqual(positions, lowestPositionsHighestPrioFG);
 	});
 }
+
+    console.log('step 7', highestPrioFG, possibleStems);
 //////
 let possibleStemsObjects =[];
 possibleStems.forEach(stem => {
@@ -310,13 +323,15 @@ possibleStems.forEach(stem => {
 	});
 })
 
+
+
 //move lowest position number to the front (= index 0 of the array)
 possibleStemsObjects = possibleStemsObjects.sort((a,b) => {
 	function firstDifference(index){
 		if(a.doubleBonds[index][0] == b.doubleBonds[index][0]) return firstDifference(index+1);
 		return a.doubleBonds[index][0] - b.doubleBonds[index][0];
 	}
-	firstDifference(0);
+	if(a.doubleBonds.length > 0) firstDifference(0);
 });
 let stem = possibleStemsObjects[0];
 
@@ -355,7 +370,7 @@ nameElements.push([STEMNAMES[stem.length], stem.stem]);
 
 //double/triple bonds
 if(stem.doubleBonds.length == []){
-	nameElements.push(['aan', stem]);
+	nameElements.push(['aan', stem.stem]);
 } else {
 	dbonds = stem.doubleBonds.filter(bond => bond[1].type == 1);
 	tbonds = stem.doubleBonds.filter(bond => bond[1].type == 2);
@@ -381,15 +396,17 @@ if(stem.doubleBonds.length == []){
 }
 
 //suffix
-let suffix = FGSUFFIXES[highestPrioFG];
-let elementConstructor = '';
-if(highestPrioFGPositions.length > 0) elementConstructor += '-';
-for(pos of highestPrioFGPositions.sort((a,b)=>a-b)) elementConstructor += pos + ',';
+if(highestPrioFG != undefined){
+	let suffix = FGSUFFIXES[highestPrioFG];
+	let elementConstructor = '';
+	if(highestPrioFGPositions.length > 0) elementConstructor += '-';
+	for(pos of highestPrioFGPositions.sort((a,b)=>a-b)) elementConstructor += pos + ',';
 
-elementConstructor = elementConstructor.slice(0, -1) + '-' + NUMERICPREFIXES[highestPrioFGPositions.length] + suffix;
-positionsConstructor = functionalGroups.filter(fg => fg[1] == highestPrioFG).flatMap(fg => fg[0]);
-nameElements.push([elementConstructor, positionsConstructor]);
-nameElements.forEach(a => a[1] = a[1].map(b => b.position));
+	elementConstructor = elementConstructor.slice(0, -1) + '-' + NUMERICPREFIXES[highestPrioFGPositions.length] + suffix;
+	positionsConstructor = functionalGroups.filter(fg => fg[1] == highestPrioFG).flatMap(fg => fg[0]);
+	nameElements.push([elementConstructor, positionsConstructor]);
+	nameElements.forEach(a => a[1] = a[1].map(b => b.position));
+}
 
 function completeName(){
 	let returnStr = '';
