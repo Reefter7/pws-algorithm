@@ -1,4 +1,5 @@
-function runAlgorithm(elementData, bondData, debugMolecularFormula) {
+// export default 
+function runAlgorithm(elementData, bondData, debugMolecularFormula='') {
 	
 class ChemicalElement{
     constructor(position, type){
@@ -377,6 +378,7 @@ for([idx, prefix] of Object.entries(prefixes)){
 
 //stem
 nameElements.push([STEMNAMES[stem.length], stem.stem]);
+nameElements.push(['stem', stem.stem]); //for reference
 
 //double/triple bonds
 if(stem.doubleBonds.length == []){
@@ -415,20 +417,28 @@ if(highestPrioFG != undefined){
 	elementConstructor = elementConstructor.slice(0, -1) + '-' + NUMERICPREFIXES[highestPrioFGPositions.length] + suffix;
 	positionsConstructor = functionalGroups.filter(fg => fg[1] == highestPrioFG).flatMap(fg => fg[0]);
 	nameElements.push([elementConstructor, positionsConstructor]);
-	nameElements.forEach(a => a[1] = a[1].map(b => b.position));
 }
+nameElements.forEach(a => a[1] = a[1].map(b => b.position));
+
 
 function completeName(){
 	let returnStr = '';
 	nameElements.forEach(nameElement => returnStr += nameElement[0]);
 	return returnStr;
 }
+console.log(nameElements);
 
 let output = document.getElementById('output');
-for([a,b] of nameElements){
-	output.innerHTML += `<span class="output2" onclick="document.getElementById('output2').innerHTML = '${b}'">${a}</span>`;
+for([elementname,positions] of nameElements){
+	output.innerHTML += `<span class="output2" onclick="document.getElementById('output2').innerHTML = '${positions}'">${elementname}</span>`;
 }
 
  console.log('%c' + debugMolecularFormula + '\n%c' + completeName(), "color: lightblue; font-size: 2em","color: red; font-weight: bold; font-size: 4em")
 
 console.log('started!');}
+
+/** Wat kan het algoritme niet?
+ * Esters/ethers/vertakte takken = 'zijtakken' waarvan Cs niet direct aan de stam zitten
+ * Benzeen
+ * zuur -> carbonzuur vanaf 3 carbonzuren, en C's niet meer meetellen in stam!! 
+ */
